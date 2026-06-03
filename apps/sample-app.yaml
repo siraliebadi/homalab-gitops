@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample-app
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  source:
+    repoURL: https://github.com/siraliebadi/homalab-gitops.git
+    targetRevision: main
+    path: manifests/sample-app
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: sample-app
+  
+  syncPolicy:
+    automated:
+      prune: true       # remove resource when delete git
+      selfHeal: true     # if change manual revert
+    syncOptions:
+      - CreateNamespace=true   # namespace create
+      - PrunePropagationPolicy=foreground
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
