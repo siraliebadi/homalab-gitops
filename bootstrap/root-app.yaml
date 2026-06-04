@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  
+  source:
+    repoURL: https://github.com/siraliebadi/homalab-gitops.git
+    targetRevision: main
+    path: apps           # ⭐ کلید App of Apps: همه‌ی Applicationها از این پوشه خونده می‌شن
+    directory:
+      recurse: true       # subdirectoryها رو هم بخون
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd     # Applicationها در namespace argocd ساخته می‌شن
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
