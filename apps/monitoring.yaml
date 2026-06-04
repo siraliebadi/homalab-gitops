@@ -1,0 +1,56 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+  finalizers:
+    # وقتی Application حذف بشه، resourceهاش هم پاک بشن
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  # multi-source pattern: ترکیب helm chart خارجی + values از repo ما
+  sources:
+    # منبع ۱: helm chart از prometheus-community
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: 86.1.0   # pin شده روی آخرین نسخه stable
+      helm:
+        releaseName: kube-prometheus-stack
+        valueFiles:
+          # رفرنس به منبع ۲ با نام مستعار 'values'
+          - $values/manifests/monitoring/values.yaml
+
+    # منبع ۲: repo خودمون - فقط برای فایل values
+    # ref: values می‌گه این منبع رو با اسم مستعار 'values' بشناس
+    # (workload از این منبع apply نمی‌شه)
+    - repoURL: https://github.com/siraliebadi/homalab-gitops.git
+      targetRevision: HEAD
+      ref: values
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+    syncOptions:
+      # خودش namespace رو بسازه
+      - CreateNamespace=true
+
+      # برای CRDهای بزرگ (مثل ServiceMonitor) لازمه
+      # وگرنه خطای 'Too long: must have at most 262144 bytes' می‌گیریم
+      - ServerSideApply=true
+
+      # اگه CRD وجود داشت overwrite کنه (برای upgrade chart)
+      - Replace=false
+
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        maxDuration: 5m
+        factor: 2

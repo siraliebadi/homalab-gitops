@@ -1,0 +1,126 @@
+# =====================================================================
+# kube-prometheus-stack values for homelab cluster
+# Tuned for: 2x t3.small workers (2 vCPU, 2 GB RAM each)
+# =====================================================================
+
+# ----- AlertManager -----
+# غیرفعال - فعلاً نمی‌خوایم (صرفه‌جویی RAM)
+alertmanager:
+  enabled: false
+
+# ----- Prometheus -----
+prometheus:
+  prometheusSpec:
+    # retention کوتاه برای صرفه‌جویی در disk
+    retention: 7d
+    retentionSize: ""
+
+    # محدودیت منابع - مهم برای t3.small
+    resources:
+      requests:
+        cpu: 100m
+        memory: 400Mi
+      limits:
+        cpu: 500m
+        memory: 800Mi
+
+    # ServiceMonitor selector را خالی می‌گذاریم تا همه ServiceMonitorها
+    # در همه namespace ها pickup بشن (به جای فقط آنهایی که label خاصی دارن)
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+
+    # storage: فعلاً emptyDir (با restart pod داده می‌ره)
+    # وقتی EBS CSI نصب کردیم، اینجا storageSpec اضافه می‌کنیم
+
+  # دسترسی از بیرون cluster از طریق NodePort
+  service:
+    type: NodePort
+    nodePort: 30090
+
+# ----- Grafana -----
+grafana:
+  enabled: true
+
+  # password اولیه - بعداً با Sealed Secret عوض می‌کنیم
+  adminPassword: "REDACTED_OLD_PASSWORD"
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+  service:
+    type: NodePort
+    nodePort: 30091
+
+  # persistence غیرفعال - dashboard هایی که خودت می‌سازی با restart می‌ره
+  # ولی dashboard های built-in (provisioned) همیشه load می‌شن
+  persistence:
+    enabled: false
+
+  # Datasource Prometheus به‌صورت خودکار تنظیم می‌شه (همون namespace)
+  # Dashboard های built-in برای Kubernetes هم خودکار load می‌شن
+
+# ----- node-exporter (DaemonSet روی همه nodeها) -----
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+# ----- kube-state-metrics -----
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+# ----- Prometheus Operator -----
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 100Mi
+    limits:
+      cpu: 200m
+      memory: 200Mi
+
+  # admission webhook patch job - منابع حداقلی
+  admissionWebhooks:
+    patch:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+        limits:
+          cpu: 100m
+          memory: 64Mi
+
+# ----- exporterهایی که برای cluster on-prem (kubeadm) لازم نیستن -----
+# اینا برای cluster های managed (EKS, GKE) به مشکل می‌خورن چون
+# control-plane از بیرون قابل scrape نیست
+# ما kubeadm داریم پس فعالشون می‌گذاریم، ولی توجه داشته باش:
+kubeApiServer:
+  enabled: true
+kubelet:
+  enabled: true
+kubeControllerManager:
+  enabled: true
+kubeScheduler:
+  enabled: true
+kubeProxy:
+  enabled: true
+kubeEtcd:
+  enabled: true
+coreDns:
+  enabled: true
