@@ -18,11 +18,11 @@ prometheus:
     # محدودیت منابع - مهم برای t3.small
     resources:
       requests:
-        cpu: 100m
-        memory: 400Mi
+        cpu: 200m
+        memory: 512Mi
       limits:
-        cpu: 500m
-        memory: 800Mi
+        cpu: 1000m
+        memory: 1Gi
 
     # ServiceMonitor selector را خالی می‌گذاریم تا همه ServiceMonitorها
     # در همه namespace ها pickup بشن (به جای فقط آنهایی که label خاصی دارن)
@@ -47,11 +47,31 @@ grafana:
 
   resources:
     requests:
-      cpu: 50m
-      memory: 128Mi
-    limits:
-      cpu: 200m
+      cpu: 100m
       memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # Probeها رو tolerant تر می‌کنیم تا با dashboard های سنگین kill نشه
+  readinessProbe:
+    httpGet:
+      path: /api/health
+      port: 3000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 10
+    failureThreshold: 6
+
+  livenessProbe:
+    httpGet:
+      path: /api/health
+      port: 3000
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 30
+    failureThreshold: 6
+
 
   service:
     type: NodePort
