@@ -1,0 +1,31 @@
+# =====================================================================
+# metrics-server values
+# Chart: kubernetes-sigs/metrics-server 3.13.0
+# =====================================================================
+
+# مهم‌ترین قسمت!
+# kubelet هر node با self-signed certificate بالا می‌آد
+# metrics-server به‌صورت پیش‌فرض اینو trust نمی‌کنه
+# این flag باعث می‌شه TLS verification رو skip کنه
+# ⚠️ توی production: cert-manager + proper kubelet serving certs استفاده کن
+args:
+  - --kubelet-insecure-tls
+  # ترجیح node address ها - IP اول، بعد hostname
+  # مهم برای cluster های on-prem که DNS برای nodeها نیست
+  - --kubelet-preferred-address-types=InternalIP,Hostname,InternalDNS,ExternalDNS,ExternalIP
+  # metric resolution (هر چقدر فاصله، اون قدر تازه)
+  - --metric-resolution=15s
+
+# منابع محدود - خیلی سبکه
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+# replica فقط ۱ - برای HA به ۲+ نیاز داری ولی برای homelab کافیه
+replicas: 1
+
+# پروب های پیش‌فرض خوبن، دست نمی‌زنیم

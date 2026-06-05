@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: metrics-server
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  sources:
+    # منبع ۱: chart از kubernetes-sigs (رسمی)
+    - repoURL: https://kubernetes-sigs.github.io/metrics-server/
+      chart: metrics-server
+      targetRevision: 3.13.0
+      helm:
+        releaseName: metrics-server
+        valueFiles:
+          - $values/manifests/metrics-server/values.yaml
+
+    # منبع ۲: values از repo خودمون
+    - repoURL: https://github.com/siraliebadi/homalab-gitops.git
+      targetRevision: HEAD
+      ref: values
+
+  destination:
+    server: https://kubernetes.default.svc
+    # توی kube-system نصب می‌کنیم - convention استاندارد metrics-server
+    namespace: kube-system
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        maxDuration: 5m
+        factor: 2
