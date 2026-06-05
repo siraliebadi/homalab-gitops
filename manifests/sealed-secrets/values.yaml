@@ -1,0 +1,34 @@
+# =====================================================================
+# sealed-secrets controller values
+# Chart: bitnami-labs/sealed-secrets 2.18.6
+# =====================================================================
+
+# ⚠️ MUST set this!
+# پیش‌فرض chart اسم رو "sealed-secrets" می‌ذاره ولی kubeseal CLI
+# دنبال "sealed-secrets-controller" می‌گرده. این gotcha کلاسیکه.
+fullnameOverride: sealed-secrets-controller
+
+# منابع محدود - controller خیلی سبکه
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+# replica فقط ۱ - برای HA باید leader election هم تنظیم بشه
+# و key rotation پیچیده‌تر می‌شه. برای homelab کافیه.
+replicaCount: 1
+
+# Pod Security Context (best practice)
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1001
+  fsGroup: 65534
+
+# Metrics برای Prometheus - فعلاً غیرفعال
+# بعد از stable شدن، اگه خواستیم فعالش کنیم تا scrape بشه
+metrics:
+  serviceMonitor:
+    enabled: false
